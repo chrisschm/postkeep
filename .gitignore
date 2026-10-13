@@ -1,0 +1,15 @@
+# Build output of Cargo. Never commit it; it is recreated by `cargo build`.
+/target/
+
+# Note: Cargo.lock is committed on purpose. Postkeep is a program, not a
+# library, so everyone should build with exactly the same dependency versions.
+
+# Backup files written by rustfmt
+**/*.rs.bk
+
+# Files created by operating systems and editors
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~

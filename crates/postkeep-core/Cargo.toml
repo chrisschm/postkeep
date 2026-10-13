@@ -1,0 +1,22 @@
+[package]
+name = "postkeep-core"
+description = "Core library of Postkeep: archive storage, mail fetching and translations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Not meant to be published on crates.io (yet). Prevents accidental uploads.
+publish = false
+
+[dependencies]
+fluent-bundle.workspace = true
+fluent-langneg.workspace = true
+unic-langid.workspace = true
+sys-locale.workspace = true
+
+[dev-dependencies]
+fluent-syntax.workspace = true
+
+[lints]
+workspace = true

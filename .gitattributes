@@ -1,0 +1,16 @@
+# Line endings
+#
+# Postkeep is developed on Windows and Linux at the same time. Without this
+# file, Git for Windows (core.autocrlf) would check text files out with CRLF
+# line endings and Linux with LF, which leads to diffs that change every line.
+#
+# Rule: all text files use LF (Unix line endings) in the repository *and* in
+# the working copy, on every operating system. Current editors (VS Code,
+# Notepad++, ...) handle LF without problems.
+* text=auto eol=lf
+
+# Files that are binary and must never be converted
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary

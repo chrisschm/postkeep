@@ -1,0 +1,11 @@
+# Rust toolchain for this repository, used automatically by rustup.
+#
+# "stable" means: the current stable Rust release. The oldest supported
+# version is stated as `rust-version` in Cargo.toml.
+# rustfmt (formatting) and clippy (code checks) are required for every
+# contribution, so rustup installs them along with the compiler.
+
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

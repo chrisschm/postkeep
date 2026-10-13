@@ -1,0 +1,21 @@
+# Editor settings shared by everyone working on Postkeep.
+# Supported by most editors out of the box (VS Code needs the "EditorConfig"
+# extension, Notepad++ the "EditorConfig" plugin). See https://editorconfig.org/
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# YAML (e.g. GitHub configuration) is conventionally indented by 2 spaces.
+[*.{yml,yaml}]
+indent_size = 2
+
+# In Markdown, two trailing spaces mean "line break" - do not remove them.
+[*.md]
+trim_trailing_whitespace = false

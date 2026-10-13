@@ -1,0 +1,63 @@
+# Checks of all dependencies with cargo-deny (https://github.com/EmbarkStudios/cargo-deny)
+#
+# Run locally with:   cargo deny check
+#
+# What is checked:
+#   advisories  known security vulnerabilities (RustSec advisory database)
+#   licenses    every dependency's license must be compatible with
+#               Postkeep's GPL-3.0-or-later
+#   bans        duplicate versions of the same crate, version wildcards
+#   sources     dependencies only from crates.io, no unknown sources
+
+[graph]
+# Only the platforms Postkeep supports. Dependencies that are only used on
+# other platforms (e.g. macOS) are ignored.
+targets = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
+
+[advisories]
+# Every known vulnerability or unmaintained crate is reported. If one has to be
+# accepted temporarily, add it here *with a comment explaining why*:
+# ignore = [{ id = "RUSTSEC-0000-0000", reason = "..." }]
+ignore = []
+
+[licenses]
+# Licenses that are compatible with GPL-3.0-or-later and therefore allowed.
+# A new dependency under a license not listed here makes the check fail. Add a
+# license only after making sure it is GPL-3.0 compatible, see
+# https://www.gnu.org/licenses/license-list.html
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+]
+# The list above deliberately contains common licenses not (yet) used by any
+# dependency, so adding a typical dependency does not require editing this
+# file. Do not warn about them.
+unused-allowed-license = "allow"
+confidence-threshold = 0.8
+
+[licenses.private]
+# Our own crates are marked `publish = false` and are not checked here; their
+# license is set once in the workspace Cargo.toml.
+ignore = true
+
+[bans]
+# Two versions of the same crate make the program bigger and can hide
+# incompatibilities (see the fluent-langneg note in Cargo.toml). Reported as a
+# warning, because sometimes it cannot be avoided.
+multiple-versions = "warn"
+# Version "*" would accept any future version, including breaking ones.
+wildcards = "deny"
+# ... except for our own crates inside this workspace, referenced by path.
+allow-wildcard-paths = true
+
+[sources]
+# Dependencies only from crates.io - no other registries or Git repositories.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

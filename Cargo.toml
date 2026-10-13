@@ -1,0 +1,57 @@
+# Postkeep - Cargo workspace root
+#
+# The project is split into several crates (Rust packages) so that the
+# safety-critical core can be developed and tested independently of any user
+# interface:
+#
+#   crates/postkeep-core   Library with everything the user interfaces build
+#                          on: storage on the network share, journal, mail
+#                          fetching, configuration, search index and
+#                          translations.
+#   crates/postkeep-cli    Command-line program `postkeep`. In stage 0 (proof
+#                          of concept) it is the only user interface and also
+#                          serves as test harness for the core. A desktop user
+#                          interface (Tauri) follows in a later stage.
+#
+# Settings shared by all crates live in the [workspace.*] tables below. Member
+# crates inherit them with `<key>.workspace = true`, so versions and metadata
+# are maintained in exactly one place.
+
+[workspace]
+members = ["crates/postkeep-core", "crates/postkeep-cli"]
+# Resolver 3 is the current dependency resolver (default for edition 2024).
+# A virtual workspace (one without its own [package]) has to name it
+# explicitly.
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# Oldest Rust version we promise to build with. Raise it deliberately and only
+# together with the toolchain used for testing.
+rust-version = "1.99"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/chrisschm/postkeep"
+
+[workspace.dependencies]
+# Internal crates
+postkeep-core = { path = "crates/postkeep-core" }
+
+# Translations with Project Fluent (https://projectfluent.org/), the system
+# also used by Firefox and Thunderbird. See crates/postkeep-core/src/i18n.rs.
+fluent-bundle = "0.16"   # formats translated messages for one language
+# Picks the best available language for the user. Must stay on the version
+# fluent-bundle itself uses (check with `cargo tree -p fluent-bundle`):
+# 0.14 switched to a different language-identifier type (icu_locid) that does
+# not fit unic-langid, which fluent-bundle 0.16 still uses.
+fluent-langneg = "0.13"
+unic-langid = "0.9"      # language identifiers such as "en" or "de-DE"
+sys-locale = "0.3"       # reads the operating system's language settings
+fluent-syntax = "0.12"   # Fluent parser, used only in tests (see i18n.rs)
+
+[workspace.lints.rust]
+# Postkeep processes untrusted input (mails from strangers) and its archive is
+# the only copy of the user's mail. Memory safety is therefore not negotiable:
+# our own code must not use `unsafe` at all. (Dependencies may use it
+# internally; that is their responsibility and is covered by their reviews.)
+unsafe_code = "forbid"

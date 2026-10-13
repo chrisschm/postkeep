@@ -1,0 +1,7 @@
+# Code formatting with rustfmt (`cargo fmt`). Apart from the settings below,
+# the standard Rust style applies - please do not format code by hand.
+
+# Formatting rules of the Rust 2024 style edition.
+style_edition = "2024"
+# Always write LF line endings, also on Windows (see .gitattributes).
+newline_style = "Unix"

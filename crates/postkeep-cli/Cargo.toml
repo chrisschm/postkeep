@@ -1,0 +1,21 @@
+[package]
+name = "postkeep-cli"
+description = "Command-line interface of Postkeep"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Not meant to be published on crates.io (yet). Prevents accidental uploads.
+publish = false
+
+# The crate is called postkeep-cli, but the program users type is `postkeep`.
+[[bin]]
+name = "postkeep"
+path = "src/main.rs"
+
+[dependencies]
+postkeep-core.workspace = true
+
+[lints]
+workspace = true

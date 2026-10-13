@@ -1,0 +1,18 @@
+# Issue template chooser on GitHub.
+#
+# Issues can only be opened through one of the forms in this folder, so that
+# reports contain the information needed to act on them. Users with write
+# access to the repository (maintainers) still see a "Blank issue" option.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Report a security vulnerability / Sicherheitslücke melden
+    url: https://github.com/chrisschm/postkeep/security/advisories/new
+    about: >-
+      Please report vulnerabilities privately here, never as a public issue. /
+      Sicherheitslücken bitte hier vertraulich melden, nie als öffentliches Issue.
+  - name: User manual / Handbuch
+    url: https://github.com/chrisschm/postkeep/wiki
+    about: >-
+      How to install and use Postkeep. /
+      Installation und Bedienung von Postkeep.

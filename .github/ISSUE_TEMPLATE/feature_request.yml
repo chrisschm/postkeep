@@ -1,0 +1,52 @@
+# Feature request form (GitHub issue form syntax:
+# https://docs.github.com/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms)
+name: Feature request
+description: Suggest an idea or an improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your idea! You can write in **English or German** (Deutsch ist willkommen).
+
+        Postkeep follows a few design principles that shape which ideas fit in:
+        - The archive consists of plain, open files (`.eml`, `.vcf`, `.ics`) on a network share - no database on the share.
+        - Several computers work on the same archive at the same time; nothing may ever overwrite another computer's changes.
+        - No dependency on a particular vendor; synchronisation only via open standards.
+
+        For larger ideas it helps to discuss the approach here before anyone starts working on a pull request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation or use case, not only the solution.
+      placeholder: When I ..., I have to ..., which is ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How could Postkeep help with this?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve the problem, or how other mail programs handle it.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, examples. Please no personal data.
+    validations:
+      required: false

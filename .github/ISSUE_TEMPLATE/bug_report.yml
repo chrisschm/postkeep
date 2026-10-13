@@ -1,0 +1,124 @@
+# Bug report form (GitHub issue form syntax:
+# https://docs.github.com/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms)
+#
+# Keep the fields in line with the current development stage: add fields when
+# new areas (e.g. the desktop interface, contacts, calendar) are released.
+name: Bug report
+description: Something does not work as expected.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem! You can write in **English or German** (Deutsch ist willkommen).
+
+        **Security vulnerabilities must not be reported here** - please use [private vulnerability reporting](https://github.com/chrisschm/postkeep/security/advisories/new) instead.
+
+        **Privacy:** Postkeep handles private mail. Please do **not** paste mail contents, mail addresses, server names, passwords or other personal data. Replace them with placeholders such as `user@example.com`.
+
+  - type: dropdown
+    id: data-loss
+    attributes:
+      label: Were mails or other data lost or damaged?
+      description: Keeping the archive safe is Postkeep's most important promise, so such reports are handled first.
+      options:
+        - "No"
+        - "Yes"
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Postkeep version
+      description: Output of `postkeep --version`
+      placeholder: e.g. postkeep 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system(s) involved
+      multiple: true
+      options:
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system version(s)
+      placeholder: e.g. Windows 11 24H2, Ubuntu 26.04
+    validations:
+      required: true
+
+  - type: input
+    id: share
+    attributes:
+      label: Network share holding the archive
+      description: Device or server, and how it is connected. Leave empty if the problem has nothing to do with the archive.
+      placeholder: e.g. Synology DS920+ with DSM 7.3, SMB3; on Linux mounted with mount.cifs
+    validations:
+      required: false
+
+  - type: dropdown
+    id: computers
+    attributes:
+      label: Computers using the archive at the same time
+      options:
+        - "1"
+        - "2"
+        - 3 or more
+        - Not sure
+    validations:
+      required: false
+
+  - type: dropdown
+    id: accounts
+    attributes:
+      label: Mail account type(s) involved
+      multiple: true
+      options:
+        - POP3
+        - IMAP
+        - Not related to mail accounts
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Start Postkeep on two computers at the same time
+        2. ...
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages / log output
+      description: Copy the text instead of a screenshot where possible. Remove personal data first (see above).
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched the existing issues for a duplicate.
+          required: true
+        - label: I removed personal data (mail contents, addresses, passwords) from this report.
+          required: true

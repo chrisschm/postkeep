@@ -49,10 +49,14 @@ env:
   # turning them off saves disk space and time.
   CARGO_INCREMENTAL: 0
 
-# Note on the Rust toolchain: GitHub's runners come with rustup preinstalled.
-# rustup reads rust-toolchain.toml on the first `cargo` call and installs the
-# toolchain and components (rustfmt, clippy) listed there. No extra action is
-# needed for this, so CI always uses the same toolchain as contributors.
+# Note on the Rust toolchain: GitHub's runners come with rustup and a stable
+# Rust preinstalled, but that preinstalled version can be older than the
+# current stable release (and older than `rust-version` in Cargo.toml).
+# `channel = "stable"` in rust-toolchain.toml does NOT update an already
+# installed stable toolchain. Every job therefore starts with
+# `rustup update stable`; afterwards rustup reads rust-toolchain.toml on the
+# first `cargo` call and adds the components listed there (rustfmt, clippy).
+# No extra action is needed for this.
 #
 # Note on actions: third-party actions are pinned to a full commit hash, not
 # to a tag, because a tag can be moved to different code later. The version
@@ -68,6 +72,9 @@ jobs:
           # The workflow never pushes, so the access token is not kept in the
           # local Git configuration.
           persist-credentials: false
+      # See "Note on the Rust toolchain" above.
+      - name: Update Rust toolchain
+        run: rustup update --no-self-update stable
       - name: Check formatting
         run: cargo fmt --all --check
 
@@ -83,6 +90,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # See "Note on the Rust toolchain" above.
+      - name: Update Rust toolchain
+        run: rustup update --no-self-update stable
       # --locked: fail instead of silently updating Cargo.lock, so CI tests
       # exactly the dependency versions that are checked in.
       - name: Run clippy
@@ -99,6 +109,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # See "Note on the Rust toolchain" above.
+      - name: Update Rust toolchain
+        run: rustup update --no-self-update stable
       - name: Run tests
         run: cargo test --workspace --locked
 

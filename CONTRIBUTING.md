@@ -13,7 +13,9 @@ open an issue first so the approach can be discussed before you invest time.
 Postkeep is written in [Rust](https://www.rust-lang.org/) and supports **Windows** and **Linux**.
 
 1. Install Rust with [rustup](https://rustup.rs/). The file `rust-toolchain.toml` makes rustup
-   use the right toolchain (current stable) with `rustfmt` and `clippy` automatically.
+   use the right toolchain (current stable) with `rustfmt` and `clippy` automatically. rustup
+   does not update an already installed stable toolchain by itself; if the build reports that
+   your `rustc` is too old, run `rustup update stable`.
 2. Platform requirements:
    - **Windows:** the Microsoft C++ build tools (MSVC), as described by the rustup installer.
    - **Linux:** a C compiler and `pkg-config`, e.g. on Debian/Ubuntu

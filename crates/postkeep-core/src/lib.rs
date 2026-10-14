@@ -12,11 +12,12 @@
 //! # Modules
 //!
 //! - [`i18n`] - translations of all user-visible texts.
+//! - [`storage`] - the archive on the share: mails as immutable files
+//!   (write to a temporary folder, read back and compare, then rename),
+//!   folders, unique file names.
 //!
 //! Planned for the proof of concept (stage 0), in this order:
 //!
-//! - storage layer: writing mails as immutable files onto the share
-//!   (write to a temporary folder, read back and compare, then rename),
 //! - POP3 fetching with a safety chain: a mail is deleted at the provider
 //!   only after it has verifiably been stored on the share,
 //! - journal: per-computer, append-only log of status changes (read, flagged,
@@ -29,3 +30,4 @@
 #![warn(missing_docs)]
 
 pub mod i18n;
+pub mod storage;

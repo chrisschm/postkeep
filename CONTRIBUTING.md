@@ -80,6 +80,27 @@ The archive Postkeep manages is the only copy of the user's mail (see
   passwords. Use placeholders such as `user@example.com` (the `example.com`/`.org`/`.net` domains
   are reserved for exactly this).
 
+### Tests against a real share
+
+`cargo test` (and CI) only use the local disk. Tests that need a real SMB share are marked
+`#[ignore]` and run by hand. Use a folder meant for tests only - never a real archive; each run
+works in its own subfolder and removes it afterwards.
+
+```
+# Windows (PowerShell) - use the UNC path, not a drive letter
+$env:POSTKEEP_TEST_SHARE = '\\nas\postkeep-test'
+cargo test -p postkeep-core --test real_share -- --ignored
+
+# Linux - share mounted with cifs, e.g. at /mnt/postkeep-test
+POSTKEEP_TEST_SHARE=/mnt/postkeep-test cargo test -p postkeep-core --test real_share -- --ignored
+```
+
+The test refuses to run if the folder is not on a network share: on Windows it requires a UNC path;
+on Linux it checks that the folder is on a `cifs` mount. This matters because an unmounted mount
+point on Linux is just an empty local folder - a test there would pass without ever touching SMB.
+If the share is mounted only on demand, consider the mount option `x-systemd.automount`, which
+mounts it on first access.
+
 ## Conventions
 
 ### Languages
@@ -150,7 +171,10 @@ zuerst ein Issue eröffnen.
   Infrastruktur (Share, Mailserver) laufen nicht in der CI, sondern von Hand.
 - **Tests:** Jede Sicherheitsregel mit Unit-Tests, besonders für Fehlerfälle; Integrationstests
   gegen einen echten SMB-Share von Windows und Linux gleichzeitig; nie echte Postfächer, nie
-  persönliche Daten (Platzhalter wie `user@example.com`).
+  persönliche Daten (Platzhalter wie `user@example.com`). Share-Tests laufen von Hand mit
+  `POSTKEEP_TEST_SHARE` und `cargo test -p postkeep-core --test real_share -- --ignored`; sie
+  verweigern den Lauf, wenn der Ordner nicht auf einem Netzlaufwerk liegt (Windows: UNC-Pfad,
+  Linux: `cifs`-Mount).
 - **Sprachen:** Code, Kommentare, Commits und Entwickler-Doku auf Englisch; Issues und Pull
   Requests auf Englisch oder Deutsch.
 - **Texte:** Kein sichtbarer Text fest im Code, alles über die Übersetzungsdateien; neue Texte in

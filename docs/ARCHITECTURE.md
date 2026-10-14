@@ -46,12 +46,12 @@ Every change must preserve these rules. Each rule needs unit tests, especially f
    of already fetched mails (POP3 UIDLs) is kept centrally on the share. *[planned]*
 3. **No two computers ever write to the same file.** New objects are new files with a globally
    unique name (timestamp + computer id + random part). Existing files are never overwritten.
-   *[planned]*
+   *[implemented for mails]*
 4. **Mail files are immutable.** Status (read, flagged, answered) is not stored in the mail but in
    a **journal per computer** (`journal/<computer>`, append-only), which all computers merge.
-   *[planned]*
+   *[implemented: immutable mail files; planned: journal]*
 5. **Moving is renaming.** Deleting means moving into the trash; final deletion only after a
-   configurable period. *[planned]*
+   configurable period. *[implemented: moving; planned: trash period]*
 6. **No database on the share.** Databases over SMB are exactly the kind of risk Postkeep exists
    to remove. The search index (SQLite with full-text search) lives on each computer's local disk
    and can be rebuilt from the share at any time. *[planned]*
@@ -63,28 +63,68 @@ Every change must preserve these rules. Each rule needs unit tests, especially f
 9. **HTML mails are displayed isolated:** no scripts, no external content (images, fonts,
    tracking pixels) unless the user allows it for a sender. *[planned]*
 
-## Archive layout on the share *[planned]*
+## Archive layout on the share *[implemented: mail folders; planned: config, contacts, calendar, journal content, locks]*
 
 ```
 <archive>/
-  config/            accounts, servers, signatures, rules (encrypted)
+  postkeep-archive.txt   identifies the folder as a Postkeep archive (storage format version)
+  config/                accounts, servers, signatures, rules (encrypted, later)
   mail/
-    inbox/2026/      one .eml file per mail, grouped by year
+    inbox/2026/          one .eml file per mail, grouped by year
+    sent/ drafts/ trash/ junk/ archive/
     <own folder>/2025/
-    _tmp/            staging area for writes in progress
-  contacts/          one .vcf file per contact (later stage)
-  calendar/          one .ics file per event (later stage)
-  journal/           status change logs, one per computer
-  locks/             short-lived locks, e.g. for POP3 fetching
+    _tmp/                staging area for writes in progress
+  contacts/              one .vcf file per contact (later stage)
+  calendar/              one .ics file per event (later stage)
+  journal/               status change logs, one per computer
+  locks/                 short-lived locks, e.g. for POP3 fetching
 ```
 
-- **Year folders**, because listing very large directories over SMB is slow.
-- **Language-neutral names:** standard folders have fixed names (`inbox`, `sent`, `trash`, ... -
-  the final list is defined together with the storage layer); only their *display* is translated.
-  Computers with different user interface languages work on the same archive, so the data on the
-  share must never contain translated text. Folders created by the user keep the user's name.
-  Journal and configuration contain identifiers only.
+The code is in `crates/postkeep-core/src/storage/`; its module documentation explains the details.
+
+- **Postkeep creates the layout itself.** The user only chooses an empty folder; Postkeep writes
+  `postkeep-archive.txt` first and then the directories. Opening an archive adds directories that
+  are missing (e.g. folders introduced by a newer version). A folder without the identification
+  file is refused, and so is an archive with an unknown (newer) storage format.
+- **Standard folders** have fixed, lowercase English names: `inbox`, `sent`, `drafts`, `trash`,
+  `junk`, `archive` (following common IMAP/Thunderbird usage). Only their *display* is translated:
+  computers with different user interface languages work on the same archive, so the data on the
+  share must never contain translated text. All of them are created with a new archive, also those
+  only used in later stages.
+- **Folders created by the user** keep the user's name, if it is a safe directory name on Windows,
+  Linux and SMB: standard names are reserved regardless of case (SMB does not distinguish `Inbox`
+  from `inbox`), names starting with `_` are reserved for internal directories such as `_tmp/`,
+  and characters or names Windows does not allow are rejected. Subfolders are not supported yet.
+- **File names** are globally unique without any coordination between computers:
+  `<UTC timestamp>-<computer id>-<random>.eml`, e.g.
+  `20261014T221530123Z-office-7f3a-9c41e2d0.eml`. The file name without `.eml` is the mail's
+  permanent id; moving a mail keeps it.
+- **Computer id:** the host name (lowercase, `a-z0-9-`, at most 20 characters) plus four random
+  hex digits, e.g. `office-7f3a`. It is created once and stored on the computer's local disk, so it
+  stays the same when the computer is renamed and differs between computers with the same name.
+- **Year folders** by the time the mail was *stored* (UTC), not by the `Date:` header: the storage
+  time always exists and is reliable, while `Date:` comes from the sender and can be missing, wrong
+  or forged. Year folders only keep directories small (listing very large directories over SMB is
+  slow); sorting for display comes from the local index.
+- Journal and configuration contain identifiers only.
 - **Side effect:** snapshots of the network drive (e.g. on a NAS) can restore single mails.
+
+### Storing a mail *[implemented]*
+
+1. Create the file under its final name in `mail/_tmp/` ("create new" - never overwrites).
+2. Write the content and flush it to the share (`sync_all`).
+3. Close, reopen and read it back; it must be byte-for-byte identical, otherwise the mail counts as
+   not stored and the temporary file is removed.
+4. Create the year folder if needed.
+5. Rename the file into the year folder (refusing to overwrite).
+
+A crash or error at any point leaves at most a file in `mail/_tmp/`, never a partial mail in a
+folder; leftovers are removed later by the computer that created them (recognised by the computer
+id in the name). Unit tests simulate a failure after every single step.
+
+**Known limit of the read-back:** the operating system may answer it partly from its own cache
+instead of the share. It reliably catches errors while writing, but cannot prove the bytes are on
+the NAS's disk. The tests against a real share (see `CONTRIBUTING.md`) complement it.
 
 ## Concurrent access *[planned]*
 
@@ -97,6 +137,36 @@ Every change must preserve these rules. Each rule needs unit tests, especially f
 
 Changes by other computers are detected by checking the share every few seconds. SMB change
 notifications may be used where they work reliably, but are never relied upon.
+
+### What other computers see, and when (measured)
+
+Measurements with two Windows computers and a Linux (CIFS) client on a Synology NAS with default
+settings gave the following picture. The design relies on it:
+
+| What | Result |
+|---|---|
+| Write to `_tmp/`, then rename into a folder | **Atomic** - the other computer saw every file only complete (Windows and Linux) |
+| Appending to an existing file (journal), reader keeps the file open | visible after **~50 ms** (Windows and Linux) |
+| New file in a folder, seen by **Windows** in a folder listing | after **0-10 s** (Windows caches directory contents for 10 s) |
+| New file, opened directly by name on **Windows** after the folder was listed | "not found" for up to **~10 s** |
+| New file, opened directly by name on Windows, folder not listed before | ~15 ms |
+| New file, seen by **Linux** (listing or opening by name) | ~15 ms |
+| Appending, Linux reader opens and closes the file on every check | **never seen** while checking rapidly (the client keeps a closed file open for about a second and keeps using its cache) |
+| SMB3 directory leasing switched on at the NAS | usually ~0.1 s, but about one in 10-15 changes stayed **invisible for over a minute** |
+
+Consequences for the code:
+
+- **New mails are announced in the journal**; the other computer then opens the file by name. A
+  "file not found" shortly after an announcement is not an error: retry for about 15 seconds,
+  then mark the mail as *pending* until a later attempt or the next reconciliation finds it.
+- **Folder listings are only used for reconciliation**, never as a complete or current picture.
+  What the user sees comes from the local index.
+- **Other computers' journals are read through a file handle that stays open**, continuing at the
+  last read position. Opening and closing on every check is unsuitable on Linux.
+- **Correctness never depends on the server's caching or leasing behaviour.** Good leasing makes
+  Postkeep faster; it must be correct without it. Directory leasing on the measured Synology NAS
+  is not recommended. Other servers (e.g. Windows Server, where directory leasing is on by default,
+  or other NAS) have not been measured yet.
 
 ## POP3 fetching with deletion *[planned]*
 
@@ -148,7 +218,7 @@ flowchart TB
 
 - **`postkeep-core`** (Rust library) contains everything the user interfaces build on. It knows
   only files, protocols and index entries - nothing about windows or terminals. *[implemented:
-  translations only]*
+  translations, storage of mails on the share]*
 - **`postkeep-cli`** (program `postkeep`) is the only user interface during the proof of concept
   and the tool to exercise the core on real network shares. *[implemented: overview, `--help`,
   `--version`, `--lang`]*
@@ -202,7 +272,7 @@ rules for adding texts or languages are in the module documentation of
 
 | Stage | Scope | Status |
 |---|---|---|
-| 0 Proof of concept | Storage format, POP3 safety chain, journal, multi-day test with two computers at once, simple command-line view | **in progress:** workspace, translations and command-line skeleton done |
+| 0 Proof of concept | Storage format, POP3 safety chain, journal, multi-day test with two computers at once, simple command-line view | **in progress:** workspace, translations, command-line skeleton and storage layer done; SMB behaviour measured |
 | 1 Basic mail client | Reading, writing, SMTP, folders, search, central settings, IMAP, import from Outlook `.pst` | planned |
 | 2 Everyday comfort | Rules, signatures, drafts, attachments, notifications, installer | planned |
 | 3 Contacts | vCard address book, birthday overview, address completion | planned |
@@ -222,11 +292,22 @@ ist damit die **einzige Kopie** der Mails. Deshalb ist Zuverlässigkeit das wich
   Abruf nur unter Sperre; nie zwei Rechner in dieselbe Datei; Mail-Dateien unveränderlich, Status im
   Journal pro Rechner; Verschieben = Umbenennen; keine Datenbank auf dem Share (Suchindex lokal);
   ohne Share kein Abruf; Zugangsdaten nur verschlüsselt; HTML-Mails abgeschottet.
-- **Ablage:** feste, sprachneutrale Namen für Standardordner, Jahresordner, `_tmp/` für laufende
-  Schreibvorgänge, `journal/`, `locks/`.
+- **Ablage:** Postkeep legt die Struktur selbst an und erkennt ein Archiv an
+  `postkeep-archive.txt`. Feste, sprachneutrale Standardordner (`inbox`, `sent`, `drafts`, `trash`,
+  `junk`, `archive`), Jahresordner nach Ablagezeitpunkt (UTC), `_tmp/` für laufende
+  Schreibvorgänge, `journal/`, `locks/`. Dateinamen `<Zeitstempel>-<Rechnerkennung>-<Zufall>.eml`;
+  die Rechnerkennung wird einmal erzeugt und lokal gespeichert.
+- **Ablegen einer Mail:** in `_tmp/` schreiben, auf den Share bringen, zurücklesen und vergleichen,
+  per Umbenennung ablegen - nie überschreiben. Ein Abbruch hinterlässt höchstens eine Datei in
+  `_tmp/`, nie eine halbe Mail im Ordner.
+- **Gemessenes SMB-Verhalten:** Umbenennen ist atomar; Anhängen an eine offene Datei ist nach
+  ~50 ms sichtbar; neue Dateien sieht Windows erst nach bis zu 10 s (Linux sofort). Deshalb werden
+  neue Mails im Journal angekündigt, Ordnerlisten dienen nur dem Abgleich, fremde Journale werden
+  über einen offen gehaltenen Handle gelesen, und Korrektheit hängt nie am Cache-/Leasing-Verhalten
+  des Servers.
 - **Aufbau:** Kern-Bibliothek `postkeep-core` (Rust), Kommandozeile `postkeep-cli`, später
   Desktop-Oberfläche mit Tauri; Kontakte und Kalender später als Module.
 - **Übersetzungen:** Project Fluent, Englisch als Grundsprache und Rückfall, Deutsch vollständig;
   Daten auf dem Share sprachneutral.
-- **Stand:** Stufe 0 (Machbarkeitsnachweis) läuft - Workspace, Übersetzungen und CLI-Gerüst sind
-  umgesetzt, alles andere ist mit *[planned]* gekennzeichnet.
+- **Stand:** Stufe 0 (Machbarkeitsnachweis) läuft - Workspace, Übersetzungen, CLI-Gerüst und
+  Speicherschicht sind umgesetzt, alles andere ist mit *[planned]* gekennzeichnet.

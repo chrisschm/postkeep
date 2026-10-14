@@ -44,7 +44,7 @@ fluent-bundle = "0.16"   # formats translated messages for one language
 # fluent-bundle itself uses (check with `cargo tree -p fluent-bundle`):
 # 0.14 switched to a different language-identifier type (icu_locid) that does
 # not fit unic-langid, which fluent-bundle 0.16 still uses.
-fluent-langneg = "0.13"
+fluent-langneg = "0.14"
 unic-langid = "0.9"      # language identifiers such as "en" or "de-DE"
 sys-locale = "0.3"       # reads the operating system's language settings
 fluent-syntax = "0.12"   # Fluent parser, used only in tests (see i18n.rs)

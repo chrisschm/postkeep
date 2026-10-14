@@ -34,6 +34,14 @@ updates:
     groups:
       cargo-minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # fluent-langneg must stay on the version fluent-bundle itself uses
+      # (see the comment in the workspace Cargo.toml): from 0.14 on it uses a
+      # different language-identifier type (icu_locid) than fluent-bundle 0.16
+      # (unic-langid). Remove this entry once fluent-bundle switches as well;
+      # check with `cargo tree -p fluent-bundle`.
+      - dependency-name: "fluent-langneg"
+        versions: [">= 0.14"]
 
   # GitHub Actions used in .github/workflows/. The workflow pins every action
   # to a commit hash with the version in a comment; Dependabot updates both.

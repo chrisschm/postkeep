@@ -43,7 +43,9 @@ fluent-bundle = "0.16"   # formats translated messages for one language
 # Picks the best available language for the user. Must stay on the version
 # fluent-bundle itself uses (check with `cargo tree -p fluent-bundle`):
 # 0.14 switched to a different language-identifier type (icu_locid) that does
-# not fit unic-langid, which fluent-bundle 0.16 still uses.
+# not fit unic-langid, which fluent-bundle 0.16 still uses. Dependabot is told
+# to skip these updates (.github/dependabot.yml, `ignore`); remove that entry
+# together with raising this version.
 fluent-langneg = "0.13"
 unic-langid = "0.9"      # language identifiers such as "en" or "de-DE"
 sys-locale = "0.3"       # reads the operating system's language settings

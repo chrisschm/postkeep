@@ -42,7 +42,7 @@ Postkeep is written in [Rust](https://www.rust-lang.org/) and supports **Windows
 | `crates/postkeep-core/locales/` | Translation files (one folder per language) |
 | `crates/postkeep-cli/` | Command-line program `postkeep` |
 | `docs/` | Developer documentation, starting at `docs/README.md` |
-| `.github/` | Issue forms, pull request template and CI workflow (`workflows/`) |
+| `.github/` | Issue forms, pull request template, CI workflow (`workflows/`) and Dependabot configuration |
 
 ## Checks before every pull request
 

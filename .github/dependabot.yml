@@ -1,0 +1,48 @@
+# Dependabot version updates
+#
+# Dependabot (built into GitHub) opens pull requests when a newer version of a
+# dependency is available. Every such pull request runs through the normal CI
+# (.github/workflows/ci.yml) and is merged by a maintainer like any other
+# contribution - nothing is merged automatically.
+#
+# Two kinds of updates exist:
+#   - Security updates: opened as soon as a dependency has a known
+#     vulnerability. They are switched on in the repository settings
+#     ("Security & quality"), not in this file, and are not delayed by the
+#     cooldown below.
+#   - Version updates: regular updates to new releases, configured here.
+#
+# Documentation of this file:
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+
+version: 2
+
+updates:
+  # Rust dependencies from Cargo.toml / Cargo.lock (whole workspace).
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Wait a week after a release before proposing it. Freshly published
+    # versions are the main way compromised packages spread; most of them are
+    # found and pulled from crates.io within days.
+    cooldown:
+      default-days: 7
+    # One pull request for all minor and patch updates instead of one per
+    # crate. Major updates (which may break the build) still get their own
+    # pull request each, so they can be reviewed separately.
+    groups:
+      cargo-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions used in .github/workflows/. The workflow pins every action
+  # to a commit hash with the version in a comment; Dependabot updates both.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]

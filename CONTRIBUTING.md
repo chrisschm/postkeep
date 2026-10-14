@@ -40,7 +40,7 @@ Postkeep is written in [Rust](https://www.rust-lang.org/) and supports **Windows
 | `crates/postkeep-core/locales/` | Translation files (one folder per language) |
 | `crates/postkeep-cli/` | Command-line program `postkeep` |
 | `docs/` | Developer documentation, starting at `docs/README.md` |
-| `.github/` | Issue forms and pull request template |
+| `.github/` | Issue forms, pull request template and CI workflow (`workflows/`) |
 
 ## Checks before every pull request
 
@@ -54,6 +54,14 @@ cargo deny check        # needed when dependencies changed
 ```
 
 Run `cargo fmt` to fix formatting instead of formatting by hand.
+
+The same checks run automatically on GitHub (workflow `.github/workflows/ci.yml`) for every pull
+request, on Linux and Windows. A pull request can only be merged when they pass. Running them
+locally first saves you a round trip. CI uses `--locked`, so a pull request that changes
+dependencies has to include the updated `Cargo.lock`.
+
+Tests against real infrastructure (a network share, a mail server) are not part of CI; they are
+run by hand, see [Tests](#tests).
 
 ## Tests
 
@@ -134,7 +142,10 @@ zuerst ein Issue eröffnen.
   `cifs-utils`); dazu `cargo-deny`. Beim Bauen desselben Ordners aus Windows und WSL in WSL einen
   eigenen `CARGO_TARGET_DIR` setzen.
 - **Pflichtprüfungen vor jedem Pull Request:** `cargo fmt --check`, `cargo clippy --all-targets --
-  -D warnings`, `cargo test`, bei geänderten Abhängigkeiten `cargo deny check`.
+  -D warnings`, `cargo test`, bei geänderten Abhängigkeiten `cargo deny check`. Dieselben
+  Prüfungen laufen für jeden Pull Request automatisch auf GitHub (Linux und Windows,
+  `.github/workflows/ci.yml`); gemergt wird nur, wenn sie grün sind. Tests gegen echte
+  Infrastruktur (Share, Mailserver) laufen nicht in der CI, sondern von Hand.
 - **Tests:** Jede Sicherheitsregel mit Unit-Tests, besonders für Fehlerfälle; Integrationstests
   gegen einen echten SMB-Share von Windows und Linux gleichzeitig; nie echte Postfächer, nie
   persönliche Daten (Platzhalter wie `user@example.com`).

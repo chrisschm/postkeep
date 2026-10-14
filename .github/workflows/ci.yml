@@ -1,0 +1,117 @@
+# Continuous integration (CI) for Postkeep
+#
+# Runs the same mandatory checks that CONTRIBUTING.md asks every contributor
+# to run locally, automatically for every push to `main` and every pull
+# request:
+#
+#   fmt      formatting matches rustfmt.toml           (Linux only - the
+#            result does not depend on the operating system)
+#   clippy   no compiler or clippy warnings            (Linux and Windows)
+#   test     all unit tests pass                       (Linux and Windows)
+#   deny     licenses, known vulnerabilities and       (Linux only - deny.toml
+#            dependency sources (cargo-deny)            already covers both
+#                                                       target platforms)
+#
+# The jobs run on GitHub-hosted runners, so contributors do not need access to
+# any private infrastructure. Tests against real infrastructure (a network
+# share, a POP3 test account) are deliberately NOT part of this workflow: they
+# are run by hand on a local machine and must never be triggered by pull
+# requests from outside.
+#
+# The job names (`fmt`, `clippy (...)`, `test (...)`, `deny`) are used as
+# required status checks for the `main` branch. Renaming a job means updating
+# those branch rules as well.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Allows starting the workflow by hand from the "Actions" tab.
+  workflow_dispatch:
+
+# Least privilege: the jobs only need to read the repository. Even if a
+# dependency or action were compromised, it could not change the repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the run that is
+# still in progress - only the latest state matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Coloured output makes the logs on GitHub easier to read.
+  CARGO_TERM_COLOR: always
+  # The CI never needs incremental builds (every run starts from scratch);
+  # turning them off saves disk space and time.
+  CARGO_INCREMENTAL: 0
+
+# Note on the Rust toolchain: GitHub's runners come with rustup preinstalled.
+# rustup reads rust-toolchain.toml on the first `cargo` call and installs the
+# toolchain and components (rustfmt, clippy) listed there. No extra action is
+# needed for this, so CI always uses the same toolchain as contributors.
+#
+# Note on actions: third-party actions are pinned to a full commit hash, not
+# to a tag, because a tag can be moved to different code later. The version
+# is kept in a comment; Dependabot updates both (see .github/dependabot.yml).
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The workflow never pushes, so the access token is not kept in the
+          # local Git configuration.
+          persist-credentials: false
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+  clippy:
+    name: clippy (${{ matrix.os }})
+    strategy:
+      # Report results for both operating systems even if one of them fails.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # --locked: fail instead of silently updating Cargo.lock, so CI tests
+      # exactly the dependency versions that are checked in.
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run tests
+        run: cargo test --workspace --locked
+
+  deny:
+    name: deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Official action of the cargo-deny authors; it uses deny.toml from the
+      # repository root. Using it avoids compiling cargo-deny on every run.
+      - name: Check dependencies
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check
